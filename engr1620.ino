@@ -1,7 +1,7 @@
+/* vim: set ft=cpp ts=2 sw=2 : */
 #include <Wire.h>
 #include <LIDARLite.h>
 #include <stdlib.h>
-
 LIDARLite lidar;
 
 const uint8_t LED_PIN = 3;
@@ -12,10 +12,20 @@ const uint8_t HISTORY_SIZE = 200; // cycles to save
 float hist[HISTORY_SIZE] = {0}; // {0} zeros the array
 
 const uint8_t CYCLES_PER_BIAS_CORRECTION = 100;
-uint8_t cycles;
 bool bias_correction;
 
-constexpr uint8_t CYCLE_RESET = 200; // should be the least common multiple of HISTORY_SIZE and CYCLES_PER_BIAS_CORRECTION
+using cycle_type = uint16_t; // limit for cycles is 2^16 - 1; slower than uint8_t but less error prone
+cycle_type cycles;
+
+constexpr cycle_type gcd(const cycle_type a, const cycle_type b) {
+    return b ? gcd(b, a%b) : a;
+}
+constexpr cycle_type lcm(const cycle_type a, const cycle_type b) {
+    return abs(a * b) / gcd(abs(a), abs(b));
+}
+constexpr cycle_type CYCLE_RESET = lcm(CYCLES_PER_BIAS_CORRECTION, HISTORY_SIZE);
+// cycle number at which to reset the cycle count
+// note: must be less than limit of cycle_type
 
 const uint8_t LIDAR_CONFIGURATION = 3;
 /*
@@ -66,6 +76,7 @@ void loop() {
   // put your main code here, to run repeatedly:
 
   // TODO: Limit cycles to save power
+  // TODO: Do not get average every cycle
 
   float dist = lidar.distance(bias_correction);
   hist[cycles % HISTORY_SIZE] = dist; // must wait for HISTORY_SIZE cycles to populate history for good averages -- not a problem
