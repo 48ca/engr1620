@@ -6,10 +6,13 @@ LIDARLite lidar;
 
 const uint8_t LED_PIN = 3;
 
-const float TRIGGER_DISTANCE = 650; // in centimeters
+const float MIN_TRIGGER_DISTANCE = 450; // in centimeters
+const float MAX_TRIGGER_DISTANCE = 800; // in centimeters
 
-const uint8_t HISTORY_SIZE = 200; // cycles to save
+const uint8_t HISTORY_SIZE = 40; // cycles to save
 float hist[HISTORY_SIZE] = {0}; // {0} zeros the array
+
+const uint8_t DELAY_PER_CYCLE = 25; // in ms
 
 const uint8_t CYCLES_PER_BIAS_CORRECTION = 100;
 bool bias_correction;
@@ -27,7 +30,7 @@ constexpr cycle_type CYCLE_RESET = lcm(CYCLES_PER_BIAS_CORRECTION, HISTORY_SIZE)
 // cycle number at which to reset the cycle count
 // note: must be less than limit of cycle_type
 
-const uint8_t LIDAR_CONFIGURATION = 3;
+const uint8_t LIDAR_CONFIGURATION = 0;
 /*
   0: Default mode, balanced performance.
   1: Short range, high speed. Uses 0x1d maximum acquisition count.
@@ -84,12 +87,14 @@ void loop() {
 
   float avg = getAverage();
 
-  lightLED(avg < TRIGGER_DISTANCE);
+  lightLED(avg < MAX_TRIGGER_DISTANCE && avg > MIN_TRIGGER_DISTANCE);
   if(++cycles % CYCLES_PER_BIAS_CORRECTION == 0) {
     bias_correction = true;
   } else {
     bias_correction = false;
   }
+
+  delay(DELAY_PER_CYCLE);
 
   // Reset cycles to speed up the modulus operation
   if(cycles >= CYCLE_RESET)
